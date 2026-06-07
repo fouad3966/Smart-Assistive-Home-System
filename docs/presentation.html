@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autonomous Object Retrieval — Presentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --navy: #0f1c2e;
+    --blue: #1a3a5c;
+    --cyan: #00b4d8;
+    --cyan-dim: rgba(0,180,216,0.15);
+    --white: #f0f4f8;
+    --gray: #8899aa;
+    --orange: #ff6b35;
+    --green: #2ecc71;
+    --red: #e74c3c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── NAV BAR ── */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    border-bottom: 1px solid rgba(0,180,216,0.2);
+    background: rgba(15,28,46,0.95);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .nav-title { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--cyan); letter-spacing: 2px; text-transform: uppercase; }
+  .nav-controls { display: flex; align-items: center; gap: 16px; }
+  .nav-btn {
+    background: var(--cyan-dim); border: 1px solid var(--cyan); color: var(--cyan);
+    padding: 6px 16px; border-radius: 4px; cursor: pointer; font-family: 'Space Mono', monospace;
+    font-size: 12px; transition: all 0.2s;
+  }
+  .nav-btn:hover { background: var(--cyan); color: var(--navy); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .slide-counter { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--gray); }
+
+  /* ── SLIDE DOTS ── */
+  .dots {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(0,180,216,0.3); cursor: pointer; transition: all 0.2s;
+  }
+  .dot.active { background: var(--cyan); transform: scale(1.4); }
+
+  /* ── SLIDES CONTAINER ── */
+  .slides-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 32px 48px 28px;
+    opacity: 0; transform: translateX(60px);
+    transition: all 0.45s cubic-bezier(0.4,0,0.2,1);
+    pointer-events: none;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; transform: translateX(0); pointer-events: all; }
+  .slide.exit { opacity: 0; transform: translateX(-60px); }
+
+  /* ── SLIDE TYPOGRAPHY ── */
+  .slide-tag {
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--cyan);
+    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .slide-title {
+    font-size: 28px; font-weight: 600; line-height: 1.2;
+    margin-bottom: 6px; color: var(--white);
+  }
+  .slide-subtitle {
+    font-size: 14px; color: var(--gray); margin-bottom: 28px;
+  }
+  .cyan { color: var(--cyan); }
+  .orange { color: var(--orange); }
+  .green { color: var(--green); }
+
+  hr.divider {
+    border: none; border-top: 1px solid rgba(0,180,216,0.25); margin-bottom: 28px;
+  }
+
+  /* ── GRID LAYOUTS ── */
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 10px; padding: 20px;
+  }
+  .card-title {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    color: var(--cyan); letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .card p { font-size: 13px; color: #c0ccd8; line-height: 1.6; }
+
+  /* ── PIPELINE FLOW ── */
+  .pipeline {
+    display: flex; align-items: stretch; gap: 0; margin: 20px 0;
+  }
+  .pipe-step {
+    flex: 1; background: rgba(0,180,216,0.08);
+    border: 1px solid rgba(0,180,216,0.3);
+    border-radius: 8px; padding: 14px 12px; text-align: center;
+    position: relative;
+  }
+  .pipe-step + .pipe-step::before {
+    content: '→'; position: absolute; left: -14px; top: 50%; transform: translateY(-50%);
+    color: var(--cyan); font-size: 18px; font-weight: bold;
+  }
+  .pipe-icon { font-size: 22px; margin-bottom: 6px; }
+  .pipe-name { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--cyan); letter-spacing: 1px; }
+  .pipe-desc { font-size: 11px; color: var(--gray); margin-top: 4px; line-height: 1.4; }
+
+  /* ── HSV VISUAL ── */
+  .hsv-demo {
+    display: flex; gap: 20px; align-items: flex-start; margin: 20px 0;
+  }
+  .color-space-box {
+    flex: 1; border-radius: 10px; overflow: hidden;
+    border: 1px solid rgba(0,180,216,0.3);
+  }
+  .color-bar-label {
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--gray);
+    padding: 6px 12px; background: rgba(0,0,0,0.3);
+  }
+  .hue-bar {
+    height: 28px;
+    background: linear-gradient(to right, 
+      hsl(0,100%,50%), hsl(30,100%,50%), hsl(60,100%,50%), hsl(90,100%,50%),
+      hsl(120,100%,50%), hsl(150,100%,50%), hsl(180,100%,50%), hsl(210,100%,50%),
+      hsl(240,100%,50%), hsl(270,100%,50%), hsl(300,100%,50%), hsl(330,100%,50%), hsl(360,100%,50%)
+    );
+  }
+  .sat-bar {
+    height: 28px;
+    background: linear-gradient(to right, #888, #00b4d8);
+  }
+  .val-bar {
+    height: 28px;
+    background: linear-gradient(to right, #000, #fff);
+  }
+
+  /* ── FRAME SIMULATION ── */
+  .frame-sim {
+    background: #1a2535; border: 2px solid rgba(0,180,216,0.4);
+    border-radius: 8px; padding: 16px; position: relative;
+  }
+  .frame-label {
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    color: var(--cyan); margin-bottom: 10px; letter-spacing: 1px;
+  }
+
+  /* ── IMAGE PROCESSING VISUAL ── */
+  .img-stages {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+    margin: 16px 0;
+  }
+  .img-stage {
+    text-align: center;
+  }
+  .img-preview {
+    width: 100%; aspect-ratio: 4/3; border-radius: 6px;
+    margin-bottom: 6px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--gray); border: 1px solid rgba(255,255,255,0.1);
+    position: relative; overflow: hidden;
+  }
+  .stage-lbl { font-size: 10px; color: var(--cyan); font-family: 'Space Mono', monospace; }
+  .stage-sub { font-size: 9px; color: var(--gray); margin-top: 2px; }
+
+  /* ── ALIGNMENT VISUAL ── */
+  .camera-frame {
+    background: #0d1a2a; border: 2px solid rgba(0,180,216,0.5);
+    border-radius: 8px; position: relative; height: 160px;
+    margin: 16px 0; overflow: hidden;
+  }
+  .center-line {
+    position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 1px; background: rgba(0,180,216,0.4); border: none;
+  }
+  .dead-zone {
+    position: absolute; left: calc(50% - 40px); top: 0; bottom: 0;
+    width: 80px; background: rgba(0,180,216,0.08);
+    border-left: 1px dashed rgba(0,180,216,0.5);
+    border-right: 1px dashed rgba(0,180,216,0.5);
+  }
+  .dz-label {
+    position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; color: var(--cyan); white-space: nowrap;
+    font-family: 'Space Mono', monospace;
+  }
+  .obj-dot {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--orange); box-shadow: 0 0 12px var(--orange);
+    transition: left 0.6s cubic-bezier(0.4,0,0.2,1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: bold; color: var(--navy);
+  }
+  .error-arrow {
+    position: absolute; top: 50%; height: 2px; background: var(--orange);
+    transform: translateY(-50%); transition: all 0.6s;
+  }
+  .axis-label {
+    position: absolute; font-size: 9px; color: var(--gray);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── ARM SEQUENCE ── */
+  .arm-states {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;
+  }
+  .arm-state {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 10px; padding: 16px 12px; text-align: center;
+    cursor: pointer; transition: all 0.25s;
+  }
+  .arm-state:hover, .arm-state.selected {
+    background: rgba(0,180,216,0.12); border-color: var(--cyan);
+  }
+  .arm-state-num {
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    color: var(--gray); margin-bottom: 4px;
+  }
+  .arm-state-name {
+    font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--white);
+  }
+  .arm-viz {
+    width: 60px; height: 70px; margin: 0 auto 10px; position: relative;
+  }
+  .joint-angle {
+    font-family: 'Space Mono', monospace; font-size: 9px; color: var(--cyan);
+    line-height: 1.6;
+  }
+  .arm-detail {
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 8px; padding: 14px; margin-top: 12px; font-size: 13px;
+    color: #c0ccd8; line-height: 1.6; min-height: 60px;
+    transition: all 0.3s;
+  }
+  .arm-detail strong { color: var(--cyan); }
+
+  /* ── STATE MACHINE ── */
+  .fsm {
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    margin: 10px 0;
+  }
+  .fsm-row { display: flex; align-items: center; gap: 0; }
+  .fsm-state {
+    background: var(--blue); border: 1.5px solid var(--cyan);
+    border-radius: 20px; padding: 7px 18px;
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    color: white; white-space: nowrap; text-align: center;
+  }
+  .fsm-state.current { background: var(--cyan); color: var(--navy); }
+  .fsm-arrow { color: var(--cyan); font-size: 14px; margin: 0 4px; }
+  .fsm-label { font-size: 9px; color: var(--gray); margin: 0 4px; }
+
+  /* ── KEY INSIGHT BOX ── */
+  .insight {
+    background: rgba(0,180,216,0.08); border-left: 3px solid var(--cyan);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0;
+  }
+  .insight-title {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    color: var(--cyan); letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .insight p { font-size: 13px; color: #c0ccd8; line-height: 1.5; }
+
+  .warn-box {
+    background: rgba(255,107,53,0.08); border-left: 3px solid var(--orange);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0;
+  }
+  .warn-box .insight-title { color: var(--orange); }
+
+  /* ── FORMULA ── */
+  .formula {
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(0,180,216,0.3);
+    border-radius: 6px; padding: 10px 16px; text-align: center;
+    font-family: 'Space Mono', monospace; font-size: 14px;
+    color: var(--cyan); margin: 10px 0; letter-spacing: 1px;
+  }
+
+  /* ── COVER SLIDE ── */
+  .cover-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+    align-items: center; height: calc(100vh - 120px);
+  }
+  .cover-left h1 {
+    font-size: 38px; font-weight: 600; line-height: 1.1; margin-bottom: 16px;
+  }
+  .cover-left p { font-size: 15px; color: var(--gray); line-height: 1.6; }
+  .pipeline-mini {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .pm-step {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 8px; padding: 12px 16px;
+    animation: fadeSlide 0.5s ease both;
+  }
+  @keyframes fadeSlide {
+    from { opacity:0; transform: translateX(20px); }
+    to { opacity:1; transform: translateX(0); }
+  }
+  .pm-icon { font-size: 20px; width: 36px; text-align: center; }
+  .pm-text { font-size: 13px; }
+  .pm-text strong { color: var(--cyan); display: block; margin-bottom: 2px; }
+  .pm-text span { color: var(--gray); font-size: 12px; }
+
+  /* ── STALL DETECTION ── */
+  .stall-chart {
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 8px; padding: 16px; margin: 12px 0;
+  }
+  .chart-bars { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+  .bar {
+    flex: 1; background: var(--cyan); border-radius: 3px 3px 0 0;
+    transition: height 0.3s;
+  }
+  .bar.stall { background: var(--orange); }
+  .bar.recovery { background: var(--green); }
+
+  /* ── SMOOTH SCROLLBAR ── */
+  .slide::-webkit-scrollbar { width: 4px; }
+  .slide::-webkit-scrollbar-track { background: transparent; }
+  .slide::-webkit-scrollbar-thumb { background: rgba(0,180,216,0.3); border-radius: 2px; }
+
+  /* ── ARM SVG SKETCHES ── */
+  .arm-svg { width: 60px; height: 70px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-title">🤖 Autonomous Object Retrieval</div>
+  <div class="nav-controls">
+    <div class="dots" id="dots"></div>
+    <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← Prev</button>
+    <span class="slide-counter" id="counter">1 / 7</span>
+    <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+  </div>
+</div>
+
+<div class="slides-wrap">
+
+  <!-- ═══════════════════════════════════════════════ SLIDE 1: COVER -->
+  <div class="slide active" id="slide-0">
+    <div class="cover-grid">
+      <div class="cover-left">
+        <div class="slide-tag">ESI-SBA · Smart Home & Assistive Robotics · 2CS ISI</div>
+        <h1>Autonomous<br>Object<br><span class="cyan">Retrieval</span><br>Pipeline</h1>
+        <p>How a robot with a Raspberry Pi — no GPU, no depth sensor — finds, approaches, and picks up an object by itself.</p>
+        <br>
+        <p style="font-size:12px; color: #556677; font-family: 'Space Mono', monospace;">
+          Navigation · Alignment · Grasping
+        </p>
+      </div>
+      <div class="pipeline-mini">
+        <div class="pm-step" style="animation-delay:0.1s">
+          <div class="pm-icon">👁️</div>
+          <div class="pm-text"><strong>1. Detect</strong><span>HSV colour thresholding finds the object in 5ms</span></div>
+        </div>
+        <div class="pm-step" style="animation-delay:0.2s">
+          <div class="pm-icon">🎯</div>
+          <div class="pm-text"><strong>2. Align</strong><span>Proportional controller centres robot on target</span></div>
+        </div>
+        <div class="pm-step" style="animation-delay:0.3s">
+          <div class="pm-icon">🚗</div>
+          <div class="pm-text"><strong>3. Approach</strong><span>Drives forward using pixel area as distance proxy</span></div>
+        </div>
+        <div class="pm-step" style="animation-delay:0.4s">
+          <div class="pm-icon">🦾</div>
+          <div class="pm-text"><strong>4. Grasp</strong><span>4-DOF arm executes pre-calibrated pose sequence</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE 2: ARCHITECTURE -->
+  <div class="slide" id="slide-1">
+    <div class="slide-tag">Chapter 1 — System</div>
+    <div class="slide-title">Two Nodes, One Pipeline</div>
+    <div class="slide-subtitle">The work is split between edge hardware and a central PC</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div class="card" style="border-color: rgba(0,180,216,0.5); margin-bottom:16px;">
+          <div class="card-title">🍓 Raspberry Pi 3 — Edge Device</div>
+          <p><strong style="color:var(--white)">Handles all physical I/O:</strong></p>
+          <br>
+          <p>📷 Camera capture (libcamera)<br>⚙️ L298N motor driver (Flask server)<br>🦾 Servo arm control (pigpio DMA)</p>
+          <br>
+          <p style="margin-top:8px; font-size:12px; color:var(--gray)">Constraint: must respond in real-time. No vision processing here.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">💻 PC — Central Brain</div>
+          <p><strong style="color:var(--white)">Handles all intelligence:</strong></p>
+          <br>
+          <p>🔍 OpenCV vision pipeline<br>🧠 Master state machine<br>📡 Sends commands back to Pi</p>
+          <br>
+          <p style="margin-top:8px; font-size:12px; color:var(--gray)">Runs heavy computation; sends only simple commands to Pi.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">📡 Communication</div>
+          <p style="margin-bottom:10px;"><strong style="color:var(--cyan)">ZMQ PUB/SUB</strong> (Pi → PC)</p>
+          <p style="font-size:12px; color:#c0ccd8">Streams camera frames. The <code style="color:var(--orange)">CONFLATE</code> option drops stale frames — PC always sees the <em>latest</em> frame, never a 2-second-old one.</p>
+          <br>
+          <p style="margin-bottom:10px;"><strong style="color:var(--cyan)">HTTP REST / Flask</strong> (PC → Pi)</p>
+          <p style="font-size:12px; color:#c0ccd8">Sends motor commands like <code style="color:var(--orange)">/forward</code>, <code style="color:var(--orange)">/left</code>, <code style="color:var(--orange)">/stop</code>. Stateless — a missed command doesn't corrupt anything.</p>
+        </div>
+        <div class="insight">
+          <div class="insight-title">💡 Key Principle</div>
+          <p>The Pi does physical work. The PC does thinking. They stay loosely coupled through simple protocols.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE: NAVIGATION -->
+  <div class="slide" id="slide-nav">
+    <div class="slide-tag">Chapter 1b — Navigation</div>
+    <div class="slide-title">SLAM + IMU <span class="cyan">L-Shape Routing</span></div>
+    <div class="slide-subtitle">How the robot navigates autonomously between named stations in a mapped room</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">🗺️ Station-Based Navigation</div>
+          <p>Stations are pre-mapped with coordinates and wall orientation (e.g. <code style="color:var(--orange)">-X Wall</code>, <code style="color:var(--orange)">+Z Wall</code>). The robot computes a <strong style="color:white">standoff point</strong> 0.3m in front of each station.</p>
+          <br>
+          <p style="font-size:12px; color:var(--gray)">stations.json stores: label, x, z, orientation for each station.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📐 3-Phase L-Shape Path</div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:var(--navy);">1</div>
+              <div style="font-size:12px;color:#c0ccd8"><strong style="color:var(--green)">Drive to elbow</strong> — straight line to the corner waypoint (SLAM-tracked, IMU heading correction)</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:var(--navy);">2</div>
+              <div style="font-size:12px;color:#c0ccd8"><strong style="color:var(--cyan)">Spin 90°</strong> — direction computed via 2D cross product of leg vectors</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:var(--navy);">3</div>
+              <div style="font-size:12px;color:#c0ccd8"><strong style="color:var(--orange)">Dock straight</strong> — drive into standoff point (no heading correction to avoid jitter)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">🧭 Sensor Fusion</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:rgba(0,180,216,0.08); border:1px solid rgba(0,180,216,0.3); border-radius:6px; padding:10px;">
+              <div style="font-size:10px; color:var(--cyan); font-family:'Space Mono',monospace; margin-bottom:4px;">SLAM (ORB-SLAM3)</div>
+              <p style="font-size:11px; color:#c0ccd8;">Provides (x, z) position in the mapped room via ZMQ PUB/SUB on port 5557</p>
+            </div>
+            <div style="background:rgba(0,180,216,0.08); border:1px solid rgba(0,180,216,0.3); border-radius:6px; padding:10px;">
+              <div style="font-size:10px; color:var(--cyan); font-family:'Space Mono',monospace; margin-bottom:4px;">IMU (Heading)</div>
+              <p style="font-size:11px; color:#c0ccd8;">Provides compass heading in degrees. Used for mid-drive corrections and precise 90° spins</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">↩️ Departure Protocol</div>
+          <p style="font-size:12px; color:#c0ccd8;">When docked at a station facing the wall, the robot <strong style="color:white">reverses 0.3m</strong> (SLAM-tracked) before planning the next route. This ensures it doesn't start an L-shape path right against a wall.</p>
+        </div>
+
+        <div class="insight">
+          <div class="insight-title">💡 Why L-Shape?</div>
+          <p>Direct paths would require the robot to rotate mid-drive, losing SLAM tracking. The L-shape ensures each leg is a straight drive with a single 90° turn at the corner — simpler, more reliable, and SLAM stays stable.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE 3: HSV VISION -->
+  <div class="slide" id="slide-2">
+    <div class="slide-tag">Chapter 2 — Computer Vision</div>
+    <div class="slide-title">How HSV Object Detection Works</div>
+    <div class="slide-subtitle">5 stages turn a raw camera frame into an object position</div>
+    <hr class="divider">
+
+    <div class="img-stages">
+      <div class="img-stage">
+        <div class="img-preview" style="background: linear-gradient(135deg, #1a3a5c 0%, #2d5a8e 50%, #0f1c2e 100%);">
+          <div style="position:absolute; top:30%; left:35%; width:30%; height:35%; background: radial-gradient(circle, #e74c3c 60%, #c0392b 100%); border-radius:50%;"></div>
+          <div style="position:absolute; bottom:10%; left:10%; font-size:8px; color:var(--gray)">noise</div>
+        </div>
+        <div class="stage-lbl">RAW FRAME</div>
+        <div class="stage-sub">BGR camera input</div>
+      </div>
+      <div class="img-stage">
+        <div class="img-preview" style="background: linear-gradient(135deg, #1a3a5c 0%, #2d5a8e 50%, #0f1c2e 100%);">
+          <div style="position:absolute; top:28%; left:33%; width:34%; height:39%; background: radial-gradient(circle, #e74c3c 60%, rgba(196,57,43,0.7) 100%); border-radius:50%; filter:blur(2px);"></div>
+        </div>
+        <div class="stage-lbl">BLUR</div>
+        <div class="stage-sub">7×7 Gaussian kernel</div>
+      </div>
+      <div class="img-stage">
+        <div class="img-preview" style="background: #000;">
+          <div style="position:absolute; top:28%; left:33%; width:34%; height:39%; background: white; border-radius:50%;"></div>
+        </div>
+        <div class="stage-lbl">HSV MASK</div>
+        <div class="stage-sub">White = target color</div>
+      </div>
+      <div class="img-stage">
+        <div class="img-preview" style="background: #000;">
+          <div style="position:absolute; top:27%; left:31%; width:38%; height:43%; background: white; border-radius:50%;"></div>
+        </div>
+        <div class="stage-lbl">MORPHOLOGY</div>
+        <div class="stage-sub">Close holes, remove noise</div>
+      </div>
+      <div class="img-stage">
+        <div class="img-preview" style="background: #0d1a2a;">
+          <div style="position:absolute; top:27%; left:31%; width:38%; height:43%; background: rgba(0,180,216,0.2); border-radius:50%; border:1.5px solid var(--cyan);"></div>
+          <div style="position:absolute; top:47%; left:49%; width:6px; height:6px; background:var(--cyan); border-radius:50%;"></div>
+          <div style="position:absolute; top:30%; left:28%; font-size:8px; color:var(--cyan);">(cx, cy)</div>
+        </div>
+        <div class="stage-lbl">CENTROID</div>
+        <div class="stage-sub">Position + Area output</div>
+      </div>
+    </div>
+
+    <div class="cols-2" style="margin-top:12px;">
+      <div>
+        <div class="card-title" style="font-family:'Space Mono',monospace; font-size:10px; color:var(--cyan); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px;">Why HSV and not RGB?</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+          <div style="background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.4); border-radius:6px; padding:10px;">
+            <div style="font-size:10px; color:var(--red); font-family:'Space Mono',monospace; margin-bottom:4px;">RGB — BAD</div>
+            <p style="font-size:11px; color:#c0ccd8;">Change lighting → all 3 channels shift. Hard to write a stable rule for "this color".</p>
+          </div>
+          <div style="background:rgba(0,180,216,0.08); border:1px solid rgba(0,180,216,0.4); border-radius:6px; padding:10px;">
+            <div style="font-size:10px; color:var(--cyan); font-family:'Space Mono',monospace; margin-bottom:4px;">HSV — GOOD</div>
+            <p style="font-size:11px; color:#c0ccd8;"><strong style="color:var(--white)">H</strong>ue stays the same under different lighting. Only V (brightness) changes.</p>
+          </div>
+        </div>
+        <div class="color-space-box">
+          <div class="color-bar-label">H — Hue (the actual colour)</div>
+          <div class="hue-bar"></div>
+          <div class="color-bar-label">S — Saturation (how vivid)</div>
+          <div class="sat-bar"></div>
+          <div class="color-bar-label">V — Value/Brightness (affected by light)</div>
+          <div class="val-bar"></div>
+        </div>
+      </div>
+      <div>
+        <div class="insight">
+          <div class="insight-title">🧮 The Mask Formula</div>
+          <p>For every pixel, check:<br><br>
+          <code style="color:var(--cyan)">H_low ≤ H ≤ H_high</code><br>
+          <code style="color:var(--cyan)">S_low ≤ S ≤ S_high</code><br>
+          <code style="color:var(--cyan)">V_low ≤ V ≤ V_high</code><br><br>
+          If all three → pixel is <strong style="color:white">white (255)</strong> in mask.<br>
+          Otherwise → <strong style="color:var(--gray)">black (0)</strong>.</p>
+        </div>
+        <div class="insight" style="margin-top:12px;">
+          <div class="insight-title">📐 Centroid Formula</div>
+          <p>Once we have the white blob, its center is computed from <strong style="color:white">image moments</strong>:<br><br>
+          <code style="color:var(--cyan)">cx = m10 / m00</code><br>
+          <code style="color:var(--cyan)">cy = m01 / m00</code><br><br>
+          <code>m00</code> = total white pixels = <strong style="color:white">apparent area</strong> (used later for distance!)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE 4: ALIGNMENT -->
+  <div class="slide" id="slide-3">
+    <div class="slide-tag">Chapter 3 — Navigation</div>
+    <div class="slide-title">Alignment: Centering the Robot on Target</div>
+    <div class="slide-subtitle">A proportional controller that works entirely in image space</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div class="card-title" style="font-family:'Space Mono',monospace; font-size:10px; color:var(--cyan); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px;">Camera View — Interactive</div>
+        <div class="camera-frame" id="camFrame">
+          <div class="dead-zone">
+            <div class="dz-label">DEAD ZONE ±40px</div>
+          </div>
+          <div class="center-line"></div>
+          <div class="obj-dot" id="objDot" style="left:70%">●</div>
+          <div class="error-arrow" id="errorArrow"></div>
+          <div class="axis-label" style="bottom:6px; left:6px">frame left</div>
+          <div class="axis-label" style="bottom:6px; right:6px">frame right</div>
+          <div class="axis-label" style="top:6px; left:6px; color:var(--cyan)">W = 640px</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="nav-btn" onclick="moveObj(0.25)" style="flex:1; font-size:11px;">← Object Left</button>
+          <button class="nav-btn" onclick="moveObj(0.5)" style="flex:1; font-size:11px;">Centre</button>
+          <button class="nav-btn" onclick="moveObj(0.75)" style="flex:1; font-size:11px;">Object Right →</button>
+        </div>
+        <div id="alignStatus" style="margin-top:10px; font-family:'Space Mono',monospace; font-size:11px; color:var(--gray); text-align:center;"></div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-title">Error Calculation</div>
+          <div class="formula">Ex = cx − (W/2)</div>
+          <p style="font-size:12px; color:#c0ccd8; margin-top:8px;">
+            <span class="orange">Ex &gt; 0</span> → object is to the <strong>right</strong> → rotate clockwise<br>
+            <span class="orange">Ex &lt; 0</span> → object is to the <strong>left</strong> → rotate counter-clockwise<br>
+            <span class="green">|Ex| &lt; 40</span> → within dead zone → <strong>stop rotating</strong>
+          </p>
+        </div>
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-title">Proportional Pulse Control</div>
+          <div class="formula">T_pulse = k_p × |Ex|</div>
+          <p style="font-size:12px; color:#c0ccd8; margin-top:8px;">
+            Big error → long pulse (fast spin)<br>
+            Small error → short pulse (tiny nudge)<br>
+            After each pulse: re-measure, re-decide.
+          </p>
+        </div>
+        <div class="insight">
+          <div class="insight-title">🔒 3-Frame Confirmation</div>
+          <p>Even when Ex is inside the dead zone, the robot waits for <strong style="color:white">3 consecutive frames</strong> to confirm alignment. This prevents reacting to a momentary vibration or flicker.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE 5: APPROACH -->
+  <div class="slide" id="slide-4">
+    <div class="slide-tag">Chapter 4 — Approach</div>
+    <div class="slide-title">Getting Close Without a Depth Sensor</div>
+    <div class="slide-subtitle">Pixel area grows as distance shrinks — that's all we need</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">📐 Monocular Distance Estimation</div>
+          <div class="formula">A ∝ 1 / d²</div>
+          <p style="font-size:13px; color:#c0ccd8; margin-top:10px;">
+            As the robot drives closer, the object fills more pixels. When pixel area reaches <strong style="color:var(--cyan)">≥ 15,000 px²</strong>, the object is at the arm's calibrated grasp point.
+          </p>
+          <br>
+          <div style="display:flex; align-items:flex-end; gap:12px; height:60px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+              <div style="width:20px; height:20px; background:var(--orange); border-radius:50%; opacity:0.5;"></div>
+              <div style="font-size:9px; color:var(--gray); font-family:'Space Mono',monospace;">FAR<br>small</div>
+            </div>
+            <div style="flex:1; height:2px; background: linear-gradient(to right, rgba(0,180,216,0.3), var(--cyan));"></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+              <div style="width:40px; height:40px; background:var(--orange); border-radius:50%;"></div>
+              <div style="font-size:9px; color:var(--cyan); font-family:'Space Mono',monospace;">CLOSE<br>≥15000px²</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🛡️ ZUPT Stall Detection</div>
+          <p style="font-size:12px; color:#c0ccd8;">If the robot is driving but the pixel area <strong style="color:white">isn't growing</strong>, it's stuck (carpet, friction).</p>
+          <br>
+          <div class="stall-chart">
+            <div style="font-size:9px; color:var(--gray); font-family:'Space Mono',monospace; margin-bottom:6px;">PIXEL AREA OVER TIME</div>
+            <div class="chart-bars">
+              <div class="bar" style="height:20%"></div>
+              <div class="bar" style="height:35%"></div>
+              <div class="bar" style="height:50%"></div>
+              <div class="bar stall" style="height:52%"></div>
+              <div class="bar stall" style="height:51%"></div>
+              <div class="bar stall" style="height:52%"></div>
+              <div class="bar recovery" style="height:65%"></div>
+              <div class="bar recovery" style="height:80%"></div>
+              <div class="bar recovery" style="height:100%"></div>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:6px;">
+              <span style="font-size:9px; color:var(--cyan);">■ Normal approach</span>
+              <span style="font-size:9px; color:var(--orange);">■ Stall detected</span>
+              <span style="font-size:9px; color:var(--green);">■ Recovery</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card-title" style="font-family:'Space Mono',monospace; font-size:10px; color:var(--cyan); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px;">Recovery Protocol</div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background: rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:14px;">
+            <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--cyan); margin-bottom:6px;">STEP 1 — SOFT BOOST</div>
+            <p style="font-size:13px; color:#c0ccd8;">PWM spiked to <strong style="color:white">60%</strong> for <strong style="color:white">300ms</strong>. Overcomes mild static friction without risking overshoot.</p>
+          </div>
+          <div style="text-align:center; color:var(--gray); font-size:12px;">↓ if still stalled</div>
+          <div style="background: rgba(255,107,53,0.06); border:1px solid rgba(255,107,53,0.3); border-radius:8px; padding:14px;">
+            <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--orange); margin-bottom:6px;">STEP 2 — HARD UNSTICK</div>
+            <p style="font-size:13px; color:#c0ccd8;"><strong style="color:white">Reverse 200ms</strong> to un-load contact patch, then <strong style="color:white">80% forward lunge</strong>. Breaks deep static friction.</p>
+          </div>
+          <div style="text-align:center; color:var(--gray); font-size:12px;">↓ then normal approach resumes</div>
+        </div>
+
+        <div class="insight" style="margin-top:14px;">
+          <div class="insight-title">💡 Why "ZUPT-inspired"?</div>
+          <p>ZUPT (Zero Velocity Update) is used in inertial navigation to detect when a device isn't moving. Same idea here: if area doesn't change over N frames, velocity = 0 → stall.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE 6: ARM -->
+  <div class="slide" id="slide-5">
+    <div class="slide-tag">Chapter 5 — Manipulation</div>
+    <div class="slide-title">How the Arm Knows What to Do</div>
+    <div class="slide-subtitle">Pre-calibrated poses eliminate IK error from encoderless servos</div>
+    <hr class="divider">
+
+    <div class="arm-states" id="armStates">
+      <div class="arm-state selected" onclick="selectArmState(0)">
+        <div class="arm-state-num">STATE 1</div>
+        <div class="arm-state-name">🧳 Stow</div>
+        <svg class="arm-svg" viewBox="0 0 60 70">
+          <!-- Base -->
+          <rect x="20" y="58" width="20" height="8" rx="2" fill="#1a3a5c" stroke="#00b4d8" stroke-width="1"/>
+          <!-- Shoulder link — tucked -->
+          <line x1="30" y1="58" x2="30" y2="38" stroke="#00b4d8" stroke-width="4" stroke-linecap="round"/>
+          <!-- Elbow link — folded in -->
+          <line x1="30" y1="38" x2="40" y2="28" stroke="#00b4d8" stroke-width="3" stroke-linecap="round"/>
+          <!-- Gripper (closed) -->
+          <circle cx="40" cy="26" r="4" fill="#1a3a5c" stroke="#00b4d8" stroke-width="1.5"/>
+          <circle cx="30" cy="38" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+          <circle cx="30" cy="58" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+        </svg>
+        <div class="joint-angle">S: 20° E: 100°<br>G: closed</div>
+      </div>
+
+      <div class="arm-state" onclick="selectArmState(1)">
+        <div class="arm-state-num">STATE 2</div>
+        <div class="arm-state-name">🦾 Extend</div>
+        <svg class="arm-svg" viewBox="0 0 60 70">
+          <rect x="20" y="58" width="20" height="8" rx="2" fill="#1a3a5c" stroke="#00b4d8" stroke-width="1"/>
+          <!-- Shoulder up high -->
+          <line x1="30" y1="58" x2="22" y2="28" stroke="#00b4d8" stroke-width="4" stroke-linecap="round"/>
+          <!-- Elbow extended far -->
+          <line x1="22" y1="28" x2="52" y2="22" stroke="#00b4d8" stroke-width="3" stroke-linecap="round"/>
+          <!-- Gripper (closed) -->
+          <circle cx="52" cy="21" r="4" fill="#1a3a5c" stroke="#00b4d8" stroke-width="1.5"/>
+          <circle cx="22" cy="28" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+          <circle cx="30" cy="58" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+        </svg>
+        <div class="joint-angle">S: 120° E: 170°<br>G: closed</div>
+      </div>
+
+      <div class="arm-state" onclick="selectArmState(2)">
+        <div class="arm-state-num">STATE 3</div>
+        <div class="arm-state-name">✊ Grab</div>
+        <svg class="arm-svg" viewBox="0 0 60 70">
+          <rect x="20" y="58" width="20" height="8" rx="2" fill="#1a3a5c" stroke="#00b4d8" stroke-width="1"/>
+          <line x1="30" y1="58" x2="22" y2="28" stroke="#00b4d8" stroke-width="4" stroke-linecap="round"/>
+          <line x1="22" y1="28" x2="52" y2="22" stroke="#00b4d8" stroke-width="3" stroke-linecap="round"/>
+          <!-- Gripper open indicators -->
+          <circle cx="52" cy="18" r="3" fill="none" stroke="#ff6b35" stroke-width="1.5"/>
+          <circle cx="52" cy="25" r="3" fill="none" stroke="#ff6b35" stroke-width="1.5"/>
+          <!-- Object being grabbed -->
+          <circle cx="52" cy="21" r="5" fill="rgba(231,76,60,0.3)" stroke="#e74c3c" stroke-width="1" stroke-dasharray="2,2"/>
+          <circle cx="22" cy="28" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+          <circle cx="30" cy="58" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+        </svg>
+        <div class="joint-angle">G: 0° open<br>wait 0.5s<br>G: 70° close<br>wait 2.0s</div>
+      </div>
+
+      <div class="arm-state" onclick="selectArmState(3)">
+        <div class="arm-state-num">STATE 4</div>
+        <div class="arm-state-name">🆙 Lift</div>
+        <svg class="arm-svg" viewBox="0 0 60 70">
+          <rect x="20" y="58" width="20" height="8" rx="2" fill="#1a3a5c" stroke="#00b4d8" stroke-width="1"/>
+          <!-- Shoulder lifted more -->
+          <line x1="30" y1="58" x2="18" y2="24" stroke="#00b4d8" stroke-width="4" stroke-linecap="round"/>
+          <!-- Elbow slightly retracted -->
+          <line x1="18" y1="24" x2="44" y2="16" stroke="#00b4d8" stroke-width="3" stroke-linecap="round"/>
+          <!-- Gripper with object -->
+          <circle cx="44" cy="14" r="5" fill="rgba(231,76,60,0.4)" stroke="#e74c3c" stroke-width="1.5"/>
+          <circle cx="44" cy="14" r="3" fill="#1a3a5c" stroke="#2ecc71" stroke-width="1.5"/>
+          <circle cx="18" cy="24" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+          <circle cx="30" cy="58" r="3" fill="#0f1c2e" stroke="#00b4d8" stroke-width="1"/>
+        </svg>
+        <div class="joint-angle">S: 140° E: 150°<br>G: resecure</div>
+      </div>
+    </div>
+
+    <div class="arm-detail" id="armDetail">
+      <strong>Stow (Navigation mode):</strong> The arm is tucked tight to the chassis. Shoulder at 20°, Elbow at 100°. This keeps the arm out of the camera's view and keeps the center of mass low for stable turning.
+    </div>
+
+    <div class="insight" style="margin-top:12px;">
+      <div class="insight-title">💡 Why Not Real-Time IK?</div>
+      <p>Budget servos have <strong style="color:white">no angle encoders</strong>. The controller only knows what angle it <em>commanded</em>, not what the servo <em>actually reached</em>. IK error compounds across joints → the arm misses by centimeters. <strong style="color:white">Pre-calibrating poses once</strong> during setup eliminates this entirely.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE 7: STATE MACHINE -->
+  <div class="slide" id="slide-6">
+    <div class="slide-tag">Chapter 7 — Integration</div>
+    <div class="slide-title">Putting It All Together</div>
+    <div class="slide-subtitle">A master finite state machine orchestrates every subsystem</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div class="card-title" style="font-family:'Space Mono',monospace; font-size:10px; color:var(--cyan); letter-spacing:1px; text-transform:uppercase; margin-bottom:12px;">Master FSM — Click a State</div>
+
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;" id="fsmViz">
+          <div class="fsm-state" onclick="fsmClick(0)" id="fsm0">IDLE</div>
+          <div style="color:var(--cyan); font-size:12px;">↓ start command</div>
+          <div class="fsm-state" onclick="fsmClick(1)" id="fsm1">SCANNING</div>
+          <div style="color:var(--cyan); font-size:12px;">↓ object found</div>
+          <div class="fsm-state" onclick="fsmClick(2)" id="fsm2">ALIGNING</div>
+          <div style="color:var(--cyan); font-size:12px;">↓ 3 frames centred</div>
+          <div class="fsm-state" onclick="fsmClick(3)" id="fsm3">APPROACHING</div>
+          <div style="color:var(--cyan); font-size:12px;">↓ area ≥ 15000px²</div>
+          <div class="fsm-state" onclick="fsmClick(4)" id="fsm4">GRASPING</div>
+          <div style="color:var(--cyan); font-size:12px;">↓ gripper closed</div>
+          <div class="fsm-state" onclick="fsmClick(5)" id="fsm5">CARRYING</div>
+          <div style="color:var(--cyan); font-size:12px;">↓ destination reached</div>
+          <div class="fsm-state" onclick="fsmClick(6)" id="fsm6">DONE ✓</div>
+        </div>
+      </div>
+
+      <div>
+        <div id="fsmDetail" class="arm-detail" style="margin-bottom:16px; min-height:80px;">
+          Click a state to learn what happens there.
+        </div>
+
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-title">Key Design Decisions Summary</div>
+          <div style="display:grid; grid-template-columns:1fr; gap:6px; margin-top:4px;">
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px;"><span class="cyan">HSV</span> over RGB → illumination robust</div>
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px;"><span class="cyan">Area-based depth</span> → no depth sensor needed</div>
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px;"><span class="cyan">Pre-calibrated poses</span> → no IK error</div>
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px;"><span class="cyan">ZUPT stall detection</span> → no odometry/IMU</div>
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px;"><span class="cyan">3-frame confirmation</span> → filters centroid jitter</div>
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px;"><span class="cyan">Linear interpolation</span> → no mechanical shock</div>
+          </div>
+        </div>
+
+        <div class="insight">
+          <div class="insight-title">🎯 Core Thesis</div>
+          <p>A full pick-and-place cycle is achievable on <strong style="color:white">Raspberry Pi class hardware</strong> through classical engineering — no GPU, no depth sensor, no ML inference needed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE: HAL -->
+  <div class="slide" id="slide-hal">
+    <div class="slide-tag">Chapter 6 — Hardware Abstraction</div>
+    <div class="slide-title">The <span class="cyan">smooth_move()</span> HAL</div>
+    <div class="slide-subtitle">pigpio DMA PWM prevents mechanical shock and protects servos</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">⚠️ The Problem</div>
+          <p>Sending a servo from 20° to 140° instantly causes:</p>
+          <br>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(231,76,60,0.1); border-radius:4px;">🔴 Chassis rocking — dislodges grasped objects</div>
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(231,76,60,0.1); border-radius:4px;">🔴 Servo gear damage from peak torque spikes</div>
+            <div style="font-size:12px; color:#c0ccd8; padding:6px; background:rgba(231,76,60,0.1); border-radius:4px;">🔴 Payload drop from inertial forces</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">✅ The Solution: Linear Interpolation</div>
+          <div class="formula">q(t) = q_current + (t / T_total) × (q_target − q_current)</div>
+          <p style="font-size:12px; color:#c0ccd8; margin-top:8px;">All 4 joints move <strong style="color:white">simultaneously</strong>, stepping max <strong style="color:var(--cyan)">2° per joint</strong> every <strong style="color:var(--cyan)">20ms</strong>. Max angular speed: 100°/s — fast enough for practical use, slow enough to prevent shock.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">🔧 pigpio vs Software PWM</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:rgba(231,76,60,0.08); border:1px solid rgba(231,76,60,0.3); border-radius:6px; padding:10px;">
+              <div style="font-size:10px; color:var(--red); font-family:'Space Mono',monospace; margin-bottom:4px;">SOFTWARE PWM</div>
+              <p style="font-size:11px; color:#c0ccd8;">OS scheduling causes jitter. Servo buzzes and oscillates. Position accuracy ±5°.</p>
+            </div>
+            <div style="background:rgba(0,180,216,0.08); border:1px solid rgba(0,180,216,0.3); border-radius:6px; padding:10px;">
+              <div style="font-size:10px; color:var(--cyan); font-family:'Space Mono',monospace; margin-bottom:4px;">pigpio DMA</div>
+              <p style="font-size:11px; color:#c0ccd8;">Hardware DMA generates µs-accurate pulses. Zero jitter. Position accuracy ±1°.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">📡 PWM Signal Spec</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center;">
+            <div style="background:rgba(0,0,0,0.3); border-radius:4px; padding:8px;">
+              <div style="font-size:10px; color:var(--cyan); font-family:'Space Mono',monospace;">0°</div>
+              <div style="font-size:11px; color:#c0ccd8;">500 µs</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); border-radius:4px; padding:8px;">
+              <div style="font-size:10px; color:var(--cyan); font-family:'Space Mono',monospace;">90°</div>
+              <div style="font-size:11px; color:#c0ccd8;">1500 µs</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); border-radius:4px; padding:8px;">
+              <div style="font-size:10px; color:var(--cyan); font-family:'Space Mono',monospace;">180°</div>
+              <div style="font-size:11px; color:#c0ccd8;">2500 µs</div>
+            </div>
+          </div>
+          <div class="formula" style="margin-top:8px; font-size:12px;">pulse = 500 + (angle / 180) × 2000 [µs]</div>
+        </div>
+
+        <div class="insight">
+          <div class="insight-title">💡 ZMQ Architecture</div>
+          <p>The PC sends target angles via ZMQ PUB. The Pi's <code style="color:var(--orange)">arm_servo_listener.py</code> receives them and runs smooth_move() locally — interpolation happens on the Pi, not the network.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE: HARDWARE -->
+  <div class="slide" id="slide-hw">
+    <div class="slide-tag">Chapter 8 — Hardware</div>
+    <div class="slide-title">Platform <span class="cyan">Specifications</span></div>
+    <div class="slide-subtitle">Every component of the Smart Home & Assistive Robot platform</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">🍓</div>
+            <div><strong style="color:white; font-size:13px;">Raspberry Pi 3B</strong><br><span style="font-size:11px; color:var(--gray);">Edge processor — GPIO, motor/servo control, camera</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">📷</div>
+            <div><strong style="color:white; font-size:13px;">IMX219 Pi Camera V2</strong><br><span style="font-size:11px; color:var(--gray);">8MP, 1080p30 — primary perception sensor</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">⚡</div>
+            <div><strong style="color:white; font-size:13px;">Dual L298N H-Bridge</strong><br><span style="font-size:11px; color:var(--gray);">4-wheel differential drive with PWM speed control</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">🔄</div>
+            <div><strong style="color:white; font-size:13px;">DC Gear Motors ×4</strong><br><span style="font-size:11px; color:var(--gray);">6V, 200 RPM — 4WD chassis</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">💪</div>
+            <div><strong style="color:white; font-size:13px;">MG995 Servo ×2</strong><br><span style="font-size:11px; color:var(--gray);">Shoulder + Elbow — high-torque (9.4 kg·cm)</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">🤏</div>
+            <div><strong style="color:white; font-size:13px;">SG90 Micro Servo ×2</strong><br><span style="font-size:11px; color:var(--gray);">Base + Gripper — lightweight positioning</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">🔋</div>
+            <div><strong style="color:white; font-size:13px;">7.4V LiPo 2S + 5V/3A USB-C</strong><br><span style="font-size:11px; color:var(--gray);">Motor power isolated from logic rail</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(0,180,216,0.2); border-radius:8px; padding:12px;">
+            <div style="font-size:22px;">📶</div>
+            <div><strong style="color:white; font-size:13px;">Wi-Fi 802.11n</strong><br><span style="font-size:11px; color:var(--gray);">Pi hotspot mode — PC connects directly</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="warn-box" style="margin-top:16px;">
+      <div class="insight-title">⚠️ Budget Constraint</div>
+      <p>The entire platform has <strong style="color:white">no GPU, no depth sensor, no absolute encoders</strong>. Every algorithm is engineered to work within these limits — classical CV, monocular area-based distance, pre-calibrated poses.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ SLIDE: SOURCE CODE -->
+  <div class="slide" id="slide-src">
+    <div class="slide-tag">Resources</div>
+    <div class="slide-title">Source Code & <span class="cyan">Team</span></div>
+    <div class="slide-subtitle">Full codebase, documentation, and academic report</div>
+    <hr class="divider">
+
+    <div class="cols-2">
+      <div>
+        <div class="card" style="margin-bottom:14px; border-color:rgba(0,180,216,0.5);">
+          <div class="card-title">📦 GitHub Repository</div>
+          <a href="https://github.com/fouad3966/Smart-Assistive-Home-System" target="_blank" style="display:block; background:rgba(0,180,216,0.1); border:1px solid var(--cyan); border-radius:8px; padding:14px; text-decoration:none; color:var(--cyan); font-family:'Space Mono',monospace; font-size:13px; transition:all 0.2s; text-align:center; margin-bottom:12px;">
+            github.com/fouad3966/Smart-Assistive-Home-System
+          </a>
+          <div style="display:flex; flex-direction:column; gap:4px; font-size:11px; color:#c0ccd8;">
+            <div><span class="cyan">raspberry_pi/</span> — Motor control, camera stream, arm servo HAL</div>
+            <div><span class="cyan">pc/</span> — Vision, alignment, pickup, navigation, calibration</div>
+            <div><span class="cyan">dashboard/</span> — Web control UI + station mapper</div>
+            <div><span class="cyan">tests/</span> — 25-test suite (hardware → integration)</div>
+            <div><span class="cyan">docs/</span> — Full academic report (PDF)</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📄 Documentation</div>
+          <p style="font-size:12px; color:#c0ccd8;">The full academic report covers system architecture, CV pipeline, control theory, robotic arm kinematics, HAL design, and the master state machine — all with mathematical formulations and engineering rationale.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">👥 Team</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--navy);font-size:13px;">RF</div>
+              <div style="font-size:13px; color:white;">Rabahi Mohamed Fouad</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--navy);font-size:13px;">MA</div>
+              <div style="font-size:13px; color:white;">Miloudi A. Aboubaker Esseddik</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--navy);font-size:13px;">LA</div>
+              <div style="font-size:13px; color:white;">Lakhdari Anis Charef Eddine</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:#9b59b6;display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--navy);font-size:13px;">AM</div>
+              <div style="font-size:13px; color:white;">Ameur Mohammed Menouer</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight">
+          <div class="insight-title">🎓 Supervised by</div>
+          <p><strong style="color:white">Pr. Rahmoune</strong><br>ESI-SBA — École Supérieure en Informatique de Sidi Bel Abbès<br>2CS ISI — Academic Year 2024–2025</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /slides-wrap -->
+
+<script>
+  let current = 0;
+  const total = 11;
+
+  // Build dots
+  const dotsEl = document.getElementById('dots');
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goToSlide(i);
+    dotsEl.appendChild(d);
+  }
+
+  function updateNav() {
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === total - 1;
+    document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i === current));
+  }
+
+  function goToSlide(idx) {
+    const slides = document.querySelectorAll('.slide');
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current - (current - idx > 0 ? 0 : 0)].classList.remove('exit'), 450);
+    const prev = current;
+    current = idx;
+    slides[prev].classList.remove('active');
+    setTimeout(() => slides[prev].classList.remove('exit'), 450);
+    slides[current].classList.add('active');
+    updateNav();
+    if (current === 4) updateAlignment();
+  }
+
+  function changeSlide(dir) {
+    const next = current + dir;
+    if (next < 0 || next >= total) return;
+    const slides = document.querySelectorAll('.slide');
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 450);
+    current = next;
+    slides[current].classList.add('active');
+    updateNav();
+    if (current === 4) updateAlignment();
+  }
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') changeSlide(-1);
+  });
+
+  // ── ALIGNMENT DEMO ──
+  let objX = 0.70;
+
+  function moveObj(frac) {
+    objX = frac;
+    updateAlignment();
+  }
+
+  function updateAlignment() {
+    const dot = document.getElementById('objDot');
+    const arrow = document.getElementById('errorArrow');
+    const status = document.getElementById('alignStatus');
+    if (!dot) return;
+
+    dot.style.left = (objX * 100) + '%';
+
+    const frameWidth = 640;
+    const cx = Math.round(objX * frameWidth);
+    const Ex = cx - frameWidth / 2;
+    const absCx = Math.round(objX * 100);
+    const mid = 50;
+
+    // Draw arrow between object and center
+    const fromPct = Math.min(absCx, mid);
+    const toPct = Math.max(absCx, mid);
+    arrow.style.left = fromPct + '%';
+    arrow.style.width = (toPct - fromPct) + '%';
+    arrow.style.background = Math.abs(Ex) < 40 ? 'var(--green)' : 'var(--orange)';
+
+    if (Math.abs(Ex) < 40) {
+      status.innerHTML = `<span style="color:var(--green)">✓ ALIGNED — Ex = ${Ex}px (within ±40px dead zone)</span>`;
+      dot.style.background = 'var(--green)';
+      dot.style.boxShadow = '0 0 12px var(--green)';
+    } else {
+      const dir = Ex > 0 ? '→ Rotate CLOCKWISE' : '← Rotate COUNTER-CLOCKWISE';
+      const pulse = Math.abs(Math.round(0.003 * Math.abs(Ex) * 1000));
+      status.innerHTML = `<span style="color:var(--orange)">Ex = ${Ex}px · ${dir} · T_pulse ≈ ${pulse}ms</span>`;
+      dot.style.background = 'var(--orange)';
+      dot.style.boxShadow = '0 0 12px var(--orange)';
+    }
+  }
+
+  setTimeout(updateAlignment, 100);
+
+  // ── ARM STATE DETAIL ──
+  const armDetails = [
+    `<strong>Stow (Navigation mode):</strong> The arm is tucked tight to the chassis — Shoulder 20°, Elbow 100°. Two purposes: the arm doesn't block the camera's view, and keeping mass low keeps the robot stable during turns.`,
+    `<strong>Extend (Elevated approach):</strong> Shoulder elevates to 120° <em>before</em> the elbow reaches out to 170°. Critical: if the elbow extended at a low shoulder angle, it would physically sweep the object away. The elevated arc means the arm descends onto the object from above.`,
+    `<strong>Open and Grab:</strong> Gripper opens to 0°, then immediately commands close to 70°. A <strong>2-second delay</strong> is mandatory here — under load, a servo takes much longer to reach full torque. Without this delay, the lift begins before the gripper has fully clamped, and the object drops.`,
+    `<strong>Lift and Secure:</strong> Shoulder lifts to 140°, elbow retracts slightly to 150°. The retraction shifts the payload's center of mass back toward the chassis wheelbase, preventing tip-forward instability. Gripper close is re-commanded to counter any slip during the lift.`
+  ];
+
+  function selectArmState(idx) {
+    document.querySelectorAll('.arm-state').forEach((s,i) => s.classList.toggle('selected', i === idx));
+    document.getElementById('armDetail').innerHTML = armDetails[idx];
+  }
+
+  // ── FSM STATE DETAIL ──
+  const fsmInfo = [
+    `<strong>IDLE:</strong> Robot is at rest, waiting for a start command. All motors off. Arm in stow position.`,
+    `<strong>SCANNING:</strong> Robot rotates slowly, scanning the camera feed with the HSV pipeline. Searching for the target colour blob. If timeout expires with no detection → back to IDLE.`,
+    `<strong>ALIGNING:</strong> Object found. Proportional controller fires rotation pulses to centre Ex within ±40px. Waits for 3 consecutive confirmed frames before proceeding.`,
+    `<strong>APPROACHING:</strong> Robot aligned. Drives forward in short bursts. Monitors pixel area after each burst. ZUPT stall detection active. Stops when area ≥ 15,000px².`,
+    `<strong>GRASPING:</strong> Motors stop. Arm executes 4-state manipulation sequence: Stow → Extend → Open/Grab → Lift. 2-second gripper-clamp delay included.`,
+    `<strong>CARRYING:</strong> Object secured. Robot navigates to delivery destination. Arm remains in secured lift pose.`,
+    `<strong>DONE ✓:</strong> Destination reached. Object delivered. Pipeline complete. System returns to IDLE for the next task.`
+  ];
+
+  function fsmClick(idx) {
+    for (let i = 0; i < 7; i++) {
+      const el = document.getElementById('fsm' + i);
+      if (el) el.classList.toggle('current', i === idx);
+    }
+    document.getElementById('fsmDetail').innerHTML = fsmInfo[idx];
+  }
+
+  updateNav();
+</script>
+</body>
+</html>
