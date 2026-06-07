@@ -1,0 +1,20 @@
+{
+  "start": {
+    "label": "Start",
+    "x": 0.0296,
+    "z": -0.0073,
+    "orientation": "-Z Wall"
+  },
+  "station1": {
+    "label": "station1",
+    "x": -0.1653,
+    "z": 0.4163,
+    "orientation": "-X Wall"
+  },
+  "station2": {
+    "label": "Station2",
+    "x": 0.072,
+    "z": 0.8483,
+    "orientation": "+Z Wall"
+  }
+}

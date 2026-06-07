@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Car — Navigation Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a12;
+            --bg-secondary: #111120;
+            --bg-card: #16162a;
+            --bg-input: #1c1c38;
+            --border: #2a2a4a;
+            --border-glow: #3a3a6a;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888aa;
+            --accent: #6c5ce7;
+            --accent-glow: #a29bfe;
+            --green: #00e676;
+            --yellow: #ffd600;
+            --red: #ff1744;
+            --blue: #448aff;
+            --orange: #ff9100;
+            --pink: #ff4081;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ──────────────────────────────────────────────────── */
+        header {
+            background: linear-gradient(135deg, #16162a 0%, #1a1a3a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-glow), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .mode-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .mode-badge.test {
+            background: rgba(108, 92, 231, .25);
+            color: var(--accent-glow);
+            border: 1px solid var(--accent);
+        }
+
+        .mode-badge.real {
+            background: rgba(255, 23, 68, .2);
+            color: var(--red);
+            border: 1px solid var(--red);
+        }
+
+        /* ── Layout ──────────────────────────────────────────────────── */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 0;
+            height: calc(100vh - 53px);
+        }
+
+        /* ── Map Panel ───────────────────────────────────────────────── */
+        .map-panel {
+            position: relative;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-right: 1px solid var(--border);
+        }
+
+        #mapCanvas {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(108, 92, 231, .08), inset 0 0 60px rgba(0, 0, 0, .4);
+        }
+
+        /* ── Controls Panel ──────────────────────────────────────────── */
+        .controls {
+            background: var(--bg-secondary);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .card-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 12px;
+        }
+
+        /* ── Status Row ──────────────────────────────────────────────── */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── Phase Badge ─────────────────────────────────────────────── */
+        .phase-badge {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 14px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            transition: all .3s;
+        }
+
+        .phase-idle {
+            background: rgba(136, 136, 170, .15);
+            color: var(--text-secondary);
+        }
+
+        .phase-planning {
+            background: rgba(108, 92, 231, .25);
+            color: var(--accent-glow);
+        }
+
+        .phase-departing {
+            background: rgba(255, 145, 0, .2);
+            color: var(--orange);
+        }
+
+        .phase-active {
+            background: rgba(0, 230, 118, .15);
+            color: var(--green);
+        }
+
+        /* ── Station Buttons ─────────────────────────────────────────── */
+        .station-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .station-btn {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .station-btn:hover:not(:disabled) {
+            background: rgba(108, 92, 231, .15);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(108, 92, 231, .15);
+        }
+
+        .station-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .station-btn.docked {
+            border-color: var(--green);
+            background: rgba(0, 230, 118, .08);
+        }
+
+        .station-btn .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── STOP Button ─────────────────────────────────────────────── */
+        .stop-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff1744, #d50000);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all .2s;
+            box-shadow: 0 4px 20px rgba(255, 23, 68, .25);
+        }
+
+        .stop-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255, 23, 68, .4);
+        }
+
+        .stop-btn:active {
+            transform: translateY(0);
+        }
+
+        /* ── Log Panel ───────────────────────────────────────────────── */
+        #logPanel {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            height: 140px;
+            overflow-y: auto;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* ── Mapping Tool ────────────────────────────────────────────── */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible-header .arrow {
+            transition: transform .2s;
+            font-size: 12px;
+        }
+
+        .collapsible-header.open .arrow {
+            transform: rotate(90deg);
+        }
+
+        .collapsible-body {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .collapsible-body.open {
+            display: block;
+        }
+
+        .map-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .map-table th {
+            text-align: left;
+            padding: 6px 4px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .map-table td {
+            padding: 4px;
+        }
+
+        .map-table input,
+        .map-table select {
+            width: 100%;
+            padding: 6px 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+        }
+
+        .map-table input:focus,
+        .map-table select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .map-table .del-btn {
+            background: none;
+            border: none;
+            color: var(--red);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+        }
+
+        .tool-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .tool-btn {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, .1);
+        }
+
+        .tool-btn.save {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .tool-btn.save:hover {
+            background: rgba(0, 230, 118, .1);
+        }
+
+        /* ── Scrollbar ───────────────────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>⚡ Autonomous Nav</h1>
+        <span id="modeBadge" class="mode-badge test">TEST</span>
+    </header>
+
+    <div class="dashboard">
+        <!-- ── Map ──────────────────────────────────────────────── -->
+        <div class="map-panel">
+            <canvas id="mapCanvas" width="600" height="900"></canvas>
+        </div>
+
+        <!-- ── Controls ─────────────────────────────────────────── -->
+        <div class="controls">
+
+            <!-- Status -->
+            <div class="card">
+                <div class="card-title">Status</div>
+                <div class="status-grid">
+                    <div class="stat">
+                        <div class="stat-label">Phase</div>
+                        <div class="stat-value"><span id="phaseBadge" class="phase-badge phase-idle">IDLE</span></div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Docked At</div>
+                        <div class="stat-value" id="dockedAt">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Position</div>
+                        <div class="stat-value" id="posValue">— , —</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Heading</div>
+                        <div class="stat-value" id="hdgValue">—°</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="card">
+                <div class="card-title">Navigate To</div>
+                <div class="station-btns" id="stationBtns"></div>
+            </div>
+
+            <!-- Stop -->
+            <button class="stop-btn" id="stopBtn" onclick="doStop()">⏹ EMERGENCY STOP</button>
+
+            <!-- Log -->
+            <div class="card">
+                <div class="card-title">Navigation Log</div>
+                <div id="logPanel">Ready.\n</div>
+            </div>
+
+            <!-- Mapping Tool -->
+            <div class="card">
+                <div class="collapsible-header" id="mapToolHeader" onclick="toggleMapping()">
+                    <span class="card-title" style="margin-bottom:0">🗺 Mapping Tool</span>
+                    <span class="arrow">▶</span>
+                </div>
+                <div class="collapsible-body" id="mapToolBody">
+                    <table class="map-table" id="mapTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>X</th>
+                                <th>Z</th>
+                                <th>Orientation</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="mapTableBody"></tbody>
+                    </table>
+                    <div class="tool-btns">
+                        <button class="tool-btn" onclick="addStationRow()">+ Add</button>
+                        <button class="tool-btn save" onclick="saveStations()">💾 Save</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  State
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const STATION_COLORS = ['#ff3366', '#ff9900', '#aa44ff', '#00ccff', '#ffdd00', '#00e676', '#ff4081'];
+        const ORI_VEC = {
+            '-X Wall': [+1, 0],
+            '+X Wall': [-1, 0],
+            '-Z Wall': [0, +1],
+            '+Z Wall': [0, -1],
+        };
+        const STANDOFF = 0.30;
+        const X_MIN = -0.60, X_MAX = 0.65;
+        const Z_MIN = -0.50, Z_MAX = 1.55;
+
+        let hull = [];
+        let stations = {};
+        let state = { pos: { x: 0, z: 0 }, heading: 0, phase: 'idle', docked_at: null, mode: 'test', path: null };
+        let prevPhase = 'idle';
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Init
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function init() {
+            try {
+                hull = await (await fetch('/map_hull')).json();
+            } catch (e) { console.warn('hull load failed', e); }
+            await loadStations();
+            setInterval(pollState, 200);
+            draw();
+        }
+
+        async function loadStations() {
+            try {
+                stations = await (await fetch('/stations')).json();
+                buildStationButtons();
+                buildMappingTable();
+            } catch (e) { console.warn('stations load failed', e); }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Polling
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function pollState() {
+            try {
+                state = await (await fetch('/state')).json();
+                updateUI();
+                draw();
+            } catch (e) { }
+        }
+
+        function updateUI() {
+            // Mode badge
+            const mb = document.getElementById('modeBadge');
+            mb.textContent = state.mode.toUpperCase();
+            mb.className = 'mode-badge ' + state.mode;
+
+            // Phase badge
+            const pb = document.getElementById('phaseBadge');
+            const phase = state.phase || 'idle';
+            pb.textContent = phase.toUpperCase();
+            pb.className = 'phase-badge';
+            if (phase === 'idle') pb.classList.add('phase-idle');
+            else if (phase === 'planning') pb.classList.add('phase-planning');
+            else if (phase === 'departing') pb.classList.add('phase-departing');
+            else pb.classList.add('phase-active');
+
+            // Log phase changes
+            if (phase !== prevPhase) {
+                appendLog(`[${new Date().toLocaleTimeString()}] Phase → ${phase}`);
+                prevPhase = phase;
+            }
+
+            // Position / Heading
+            document.getElementById('posValue').textContent =
+                `${state.pos.x.toFixed(3)}, ${state.pos.z.toFixed(3)}`;
+            document.getElementById('hdgValue').textContent =
+                `${state.heading.toFixed(1)}°`;
+
+            // Docked
+            document.getElementById('dockedAt').textContent =
+                state.docked_at || '—';
+
+            // Button states
+            const btns = document.querySelectorAll('.station-btn');
+            const busy = state.phase !== 'idle';
+            btns.forEach(btn => {
+                const name = btn.dataset.station;
+                btn.disabled = busy;
+                btn.classList.toggle('docked', name === state.docked_at);
+            });
+        }
+
+        function appendLog(msg) {
+            const lp = document.getElementById('logPanel');
+            lp.textContent += msg + '\n';
+            lp.scrollTop = lp.scrollHeight;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Commands
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function goStation(name) {
+            appendLog(`→ Navigate to ${name}`);
+            try {
+                const r = await (await fetch('/go', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: name })
+                })).json();
+                if (r.status === 'busy') {
+                    appendLog('⚠ Already navigating');
+                } else if (r.path) {
+                    state.path = r.path;
+                    draw();
+                }
+            } catch (e) { appendLog('❌ Request failed'); }
+        }
+
+        async function doStop() {
+            appendLog('⛔ STOP');
+            try { await fetch('/stop', { method: 'POST' }); } catch (e) { }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Station Buttons
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function buildStationButtons() {
+            const container = document.getElementById('stationBtns');
+            container.innerHTML = '';
+            const names = Object.keys(stations);
+            names.forEach((name, i) => {
+                const s = stations[name];
+                const btn = document.createElement('button');
+                btn.className = 'station-btn';
+                btn.dataset.station = name;
+                const color = STATION_COLORS[i % STATION_COLORS.length];
+                btn.innerHTML = `<span class="dot" style="background:${color}"></span>${s.label || name}`;
+                btn.onclick = () => goStation(name);
+                container.appendChild(btn);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Map Canvas
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function draw() {
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const PAD = 40;
+
+            // World-to-canvas transforms
+            const worldW = X_MAX - X_MIN;
+            const worldH = Z_MAX - Z_MIN;
+            const scaleX = (W - 2 * PAD) / worldW;
+            const scaleZ = (H - 2 * PAD) / worldH;
+            const scale = Math.min(scaleX, scaleZ);
+
+            const offsetX = PAD + ((W - 2 * PAD) - worldW * scale) / 2;
+            const offsetZ = PAD + ((H - 2 * PAD) - worldH * scale) / 2;
+
+            function wx(x) { return offsetX + (x - X_MIN) * scale; }
+            function wz(z) { return H - offsetZ - (z - Z_MIN) * scale; }  // flip Y
+
+            // Clear
+            ctx.fillStyle = '#08080f';
+            ctx.fillRect(0, 0, W, H);
+
+            // Grid
+            ctx.strokeStyle = '#15152a';
+            ctx.lineWidth = 0.5;
+            for (let x = Math.ceil(X_MIN * 10) / 10; x <= X_MAX; x += 0.1) {
+                ctx.beginPath(); ctx.moveTo(wx(x), 0); ctx.lineTo(wx(x), H); ctx.stroke();
+            }
+            for (let z = Math.ceil(Z_MIN * 10) / 10; z <= Z_MAX; z += 0.1) {
+                ctx.beginPath(); ctx.moveTo(0, wz(z)); ctx.lineTo(W, wz(z)); ctx.stroke();
+            }
+
+            // 1. Room hull
+            if (hull.length > 2) {
+                ctx.beginPath();
+                ctx.moveTo(wx(hull[0][0]), wz(hull[0][1]));
+                for (let i = 1; i < hull.length; i++) {
+                    ctx.lineTo(wx(hull[i][0]), wz(hull[i][1]));
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(13,31,45,0.7)';
+                ctx.fill();
+                ctx.strokeStyle = '#2a6090';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = '#2a6090';
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // 2. Stations + 3. Standoffs
+            const stationNames = Object.keys(stations);
+            stationNames.forEach((name, i) => {
+                const s = stations[name];
+                const sx = s.x, sz = s.z;
+                const color = STATION_COLORS[i % STATION_COLORS.length];
+
+                // Station dot
+                ctx.beginPath();
+                ctx.arc(wx(sx), wz(sz), 7, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Label
+                ctx.fillStyle = color;
+                ctx.font = '600 11px Inter, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText((s.label || name).toUpperCase(), wx(sx) + 12, wz(sz) + 4);
+            });
+
+            // 4. Planned path
+            const path = state.path;
+            if (path) {
+                const sx = wx(path.start[0]), sz = wz(path.start[1]);
+                const tx = wx(path.target[0]), tz = wz(path.target[1]);
+
+                if (path.is_straight) {
+                    // Single green line
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sz);
+                    ctx.lineTo(tx, tz);
+                    ctx.strokeStyle = '#00e676';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#00e676';
+                    ctx.shadowBlur = 6;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                } else {
+                    const ex = wx(path.elbow[0]), ez = wz(path.elbow[1]);
+
+                    // Leg 1: green
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sz);
+                    ctx.lineTo(ex, ez);
+                    ctx.strokeStyle = '#00e676';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#00e676';
+                    ctx.shadowBlur = 6;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // Leg 2: yellow
+                    ctx.beginPath();
+                    ctx.moveTo(ex, ez);
+                    ctx.lineTo(tx, tz);
+                    ctx.strokeStyle = '#ffd600';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#ffd600';
+                    ctx.shadowBlur = 6;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // Elbow diamond
+                    ctx.save();
+                    ctx.translate(ex, ez);
+                    ctx.rotate(Math.PI / 4);
+                    ctx.fillStyle = '#00e676';
+                    ctx.shadowColor = '#00e676';
+                    ctx.shadowBlur = 8;
+                    ctx.fillRect(-5, -5, 10, 10);
+                    ctx.restore();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // 5. Car marker
+            const carX = wx(state.pos.x);
+            const carZ = wz(state.pos.z);
+            const headRad = (state.heading - 90) * Math.PI / 180;  // convert heading to canvas angle
+
+            ctx.save();
+            ctx.translate(carX, carZ);
+            ctx.rotate(headRad);
+
+            // Car body
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#ffffff';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(-8, -6, 16, 12);
+            ctx.shadowBlur = 0;
+
+            // Heading arrow
+            ctx.beginPath();
+            ctx.moveTo(12, 0);
+            ctx.lineTo(6, -5);
+            ctx.lineTo(6, 5);
+            ctx.closePath();
+            ctx.fillStyle = '#00e676';
+            ctx.fill();
+
+            ctx.restore();
+
+            // Axis labels
+            ctx.fillStyle = '#334466';
+            ctx.font = '10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('X →', W / 2, H - 8);
+            ctx.save();
+            ctx.translate(12, H / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Z →', 0, 0);
+            ctx.restore();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Mapping Tool
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function toggleMapping() {
+            const h = document.getElementById('mapToolHeader');
+            const b = document.getElementById('mapToolBody');
+            h.classList.toggle('open');
+            b.classList.toggle('open');
+        }
+
+        function buildMappingTable() {
+            const tbody = document.getElementById('mapTableBody');
+            tbody.innerHTML = '';
+            for (const [name, s] of Object.entries(stations)) {
+                addTableRow(name, s.x, s.z, s.orientation || '-Z Wall');
+            }
+        }
+
+        function addTableRow(name = '', x = 0, z = 0, ori = '-Z Wall') {
+            const tbody = document.getElementById('mapTableBody');
+            const tr = document.createElement('tr');
+            const oris = ['-X Wall', '+X Wall', '-Z Wall', '+Z Wall'];
+            const opts = oris.map(o => `<option ${o === ori ? 'selected' : ''}>${o}</option>`).join('');
+            tr.innerHTML = `
+    <td><input type="text" value="${name}" class="st-name"></td>
+    <td><input type="number" step="0.001" value="${x}" class="st-x"></td>
+    <td><input type="number" step="0.001" value="${z}" class="st-z"></td>
+    <td><select class="st-ori">${opts}</select></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove()">✕</button></td>
+  `;
+            tbody.appendChild(tr);
+        }
+
+        function addStationRow() { addTableRow(); }
+
+        async function saveStations() {
+            const rows = document.querySelectorAll('#mapTableBody tr');
+            const data = {};
+            rows.forEach(tr => {
+                const name = tr.querySelector('.st-name').value.trim();
+                if (!name) return;
+                data[name] = {
+                    label: name,
+                    x: parseFloat(tr.querySelector('.st-x').value),
+                    z: parseFloat(tr.querySelector('.st-z').value),
+                    orientation: tr.querySelector('.st-ori').value,
+                };
+            });
+            try {
+                await fetch('/stations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                stations = data;
+                buildStationButtons();
+                appendLog('✅ Stations saved');
+                draw();
+            } catch (e) { appendLog('❌ Save failed'); }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Boot
+        // ═══════════════════════════════════════════════════════════════════════════
+        window.addEventListener('load', init);
+    </script>
+</body>
+
+</html>
